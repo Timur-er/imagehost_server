@@ -1,4 +1,4 @@
-const {User: user_model} = require('../models/models')
+const {User: user_model, Role, Team} = require('../models/models')
 const TokenService = require('./token_service');
 const bcrypt = require('bcrypt');
 const ApiError = require('../error/ApiError')
@@ -48,17 +48,27 @@ class UserService {
 
     async refresh(refresh_token) {
         if (!refresh_token) {
-            throw ApiError.UnauthorizedError()
+            throw ApiError.UnauthorizedError('Refresh token is required!')
         }
 
         const user_data = await TokenService.validateRefreshToken(refresh_token);
         const token_from_db = await TokenService.findToken(refresh_token);
         if (!user_data || !token_from_db) {
-            throw ApiError.UnauthorizedError()
+            throw ApiError.UnauthorizedError('Invalid refresh token')
         }
-        const user = await user_model.findOne({where: {id: user_data.id}})
+        const user = await user_model.findOne({where: {id: user_data.id},
+            include: [
+                { model: Role, attributes: ['name'] },
+                { model: Team, attributes: ['name'] }
+            ]})
+
+        if (!user) {
+            throw ApiError.UnauthorizedError('User not found');
+        }
+
         const {id, email} = user;
-        const tokens = await TokenService.generateTokens({id, email});
+
+        const tokens = await TokenService.generateTokens({id, email, role: user.Role.name, team: user.Team.name});
         await TokenService.saveToken(user.id, tokens.refresh_token);
         return {...tokens, user: {user_id: user.id, email}}
     }

@@ -1,9 +1,8 @@
-const {User, Role} = require('../models/models')
+const {User, Role, Team} = require('../models/models')
 class UsersController {
-    async gtAllUsers (req, res) {
+    async getAllUsers (req, res) {
         try {
-            console.log('get all users')
-            const response = await User.findAll({include: [Role]})
+            const response = await User.findAll({include: [Role, Team]})
             res.json(response)
         } catch (e) {
             console.log(e);

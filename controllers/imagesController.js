@@ -1,4 +1,4 @@
-const {Image, CroppingSettings, User, } = require('../models/models');
+const {Image, CroppingSettings, User, Team, } = require('../models/models');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -32,6 +32,7 @@ const upload = multer({ storage: storage });
 class ImagesController {
     async addImage(req, res){
         try {
+            console.log('uploading image');
             upload.single('image')(req, res, async (err) => {
                 if (err) {
                     return res.status(500).json({ message: err.message });
@@ -126,7 +127,7 @@ class ImagesController {
 
     async getTeamImages (req, res) {
         try {
-            let {teamId} = req.params
+            let {teamName} = req.params
             let { limit, page, searchQuery } = req.query;
             console.log('request query', req.query);
             console.log('request params', req.params);
@@ -139,26 +140,29 @@ class ImagesController {
                 searchCondition.imageName = { [Op.like]: `%${searchQuery}%` };
             }
 
-            // Adding condition for teamId if provided
-            let userCondition = {};
-            if (teamId) {
-                userCondition.teamId = teamId;
+            // Find the team by name
+            const team = await Team.findOne({ where: { name: teamName } });
+            if (!team) {
+                return res.status(404).send('Team not found');
             }
 
+            // Find all users in the team
+            const users = await User.findAll({ where: { teamId: team.id } });
+            const userIds = users.map(user => user.id);
+
+            // Find and count all images for these users
             let images = await Image.findAndCountAll({
                 limit,
                 offset,
-                where: searchCondition,
-                include: [{
-                    model: User,
-                    where: userCondition,
-                    attributes: [] // Not selecting any user attributes
-                }],
+                where: {
+                    ...searchCondition,
+                    userId: { [Op.in]: userIds } // Select images where userId is in the list of team user IDs
+                },
             });
 
+            console.log('images - ', images);
+
             return res.json(images);
-
-
 
             // const {teamId} = req.params;
             // console.log('team id - ', teamId);

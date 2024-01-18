@@ -11,9 +11,7 @@ class UserController {
     async registration(req, res) {
         try {
             const { email, password, roleId, teamId} = req.body;
-            const user_data = await userService.registration(email, password, roleId, teamId)
-            // res.cookie('refresh_token', user_data.refresh_token, cookieConfig);
-            // return res.json(user_data);
+            await userService.registration(email, password, roleId, teamId)
             return res.json("The user has been successfully registered!")
         } catch (e) {
             console.log(e);
@@ -37,6 +35,7 @@ class UserController {
         try {
             console.log('refresh stage');
             const {refresh_token} = req.cookies;
+            console.log('refresh token - ', refresh_token);
             const userData = await userService.refresh(refresh_token);
             res.cookie('refresh_token', userData.refresh_token, cookieConfig);
             return res.json(userData);
