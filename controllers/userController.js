@@ -1,5 +1,3 @@
-const ApiError = require('../error/ApiError')
-const bcrypt = require('bcrypt')
 const userService = require('../services/user_service')
 
 const cookieConfig = {
@@ -12,11 +10,11 @@ const cookieConfig = {
 class UserController {
     async registration(req, res) {
         try {
-            console.log('registartion');
-            const { userName, password} = req.body;
-            const user_data = await userService.registration(userName, password)
-            res.cookie('refresh_token', user_data.refresh_token, cookieConfig);
-            return res.json(user_data);
+            const { email, password, roleId, teamId} = req.body;
+            const user_data = await userService.registration(email, password, roleId, teamId)
+            // res.cookie('refresh_token', user_data.refresh_token, cookieConfig);
+            // return res.json(user_data);
+            return res.json("The user has been successfully registered!")
         } catch (e) {
             console.log(e);
         }

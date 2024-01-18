@@ -2,27 +2,25 @@ const jwt = require('jsonwebtoken');
 const {UserToken} = require('../models/models');
 
 class TokenService {
-    async generateTokens(payload) {
-        const access_token = await jwt.sign(payload, process.env.SECRET_KEY, {expiresIn: '60m'});
-        const refresh_token = await jwt.sign(payload, process.env.JWT_REFRESH, {expiresIn: '30d'});
+    generateTokens(payload) {
+        const access_token = jwt.sign(payload, process.env.SECRET_KEY, {expiresIn: '60m'});
+        const refresh_token = jwt.sign(payload, process.env.JWT_REFRESH, {expiresIn: '30d'});
         return {access_token, refresh_token};
     }
 
-    async validateAccessToken(token) {
+    validateAccessToken(token) {
         try {
             const secret =  process.env.SECRET_KEY;
-            const user_data = await jwt.verify(token, secret);
-            return user_data;
+            return jwt.verify(token, secret);
         } catch (e) {
             return null;
         }
     }
 
-    async validateRefreshToken(token) {
+    validateRefreshToken(token) {
         try {
             const refresh_token = process.env.JWT_REFRESH
-            const user_data = await jwt.verify(token, refresh_token);
-            return user_data;
+            return jwt.verify(token, refresh_token);
         } catch (e) {
             return null;
         }

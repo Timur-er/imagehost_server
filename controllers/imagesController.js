@@ -1,4 +1,4 @@
-const {Image, CroppingSettings, } = require('../models/models');
+const {Image, CroppingSettings, User, } = require('../models/models');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -6,7 +6,6 @@ const sharp = require('sharp');
 const {Op} = require("sequelize");
 
 // Set up Multer
-const uploadDir = path.join(__dirname, '../uploads')
 const cacheDir = path.join(__dirname, '../cache')
 
 // storage = multer.diskStorage({
@@ -41,11 +40,11 @@ class ImagesController {
                     return res.status(400).send('No image file provided.');
                 }
 
-                console.log('file name - ', req.file.filename);
                 const newImage = await Image.create({
                     imageName: req.file.originalname,
                     fileName: req.file.filename,
-                    filePath: req.file.path
+                    filePath: req.file.path,
+                    userId: req.user.id
                 });
 
                 const cropData = JSON.parse(req.body.crops); // Assuming crops data is in req.body
@@ -83,8 +82,6 @@ class ImagesController {
 
 
             let images = await Image.findAndCountAll({limit, offset, where: searchCondition});
-            // console.log(req.query);
-            // let images = await Image.findAndCountAll();
             res.json(images);
         } catch (e) {
             console.log(e);
@@ -124,6 +121,65 @@ class ImagesController {
         } catch (error) {
             console.error(error);
             res.status(500).send('Server error');
+        }
+    }
+
+    async getTeamImages (req, res) {
+        try {
+            let {teamId} = req.params
+            let { limit, page, searchQuery } = req.query;
+            console.log('request query', req.query);
+            console.log('request params', req.params);
+            page = page || 1;
+            limit = limit || 8;
+            let offset = page * limit - limit;
+
+            let searchCondition = {};
+            if (searchQuery) {
+                searchCondition.imageName = { [Op.like]: `%${searchQuery}%` };
+            }
+
+            // Adding condition for teamId if provided
+            let userCondition = {};
+            if (teamId) {
+                userCondition.teamId = teamId;
+            }
+
+            let images = await Image.findAndCountAll({
+                limit,
+                offset,
+                where: searchCondition,
+                include: [{
+                    model: User,
+                    where: userCondition,
+                    attributes: [] // Not selecting any user attributes
+                }],
+            });
+
+            return res.json(images);
+
+
+
+            // const {teamId} = req.params;
+            // console.log('team id - ', teamId);
+            //
+            // const users = await User.findAll({
+            //     where: { teamId: teamId },
+            //     include: [{
+            //         model: Image,
+            //         attributes: ['imageName', 'fileName', 'filePath'] // Adjust attributes as needed
+            //     }]
+            // });
+            //
+            // let images = [];
+            // users.forEach(user => {
+            //     images = images.concat(user.Images);
+            // });
+            //
+            // return res.json(images);
+        } catch (error) {
+            console.error('Error fetching images from team:', error);
+            throw error;
         }
     }
 }

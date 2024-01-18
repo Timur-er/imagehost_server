@@ -1,33 +1,33 @@
 const {User: user_model} = require('../models/models')
-const uuid = require('uuid');
 const TokenService = require('./token_service');
 const bcrypt = require('bcrypt');
 const ApiError = require('../error/ApiError')
 
 class UserService {
-    async registration(userName, password) {
-        console.log('user service registration');
-        const candidate = await user_model.findOne({where: {userName: userName}});
-        console.log('candidate = ', candidate);
+    async registration(email, password, roleId, teamId) {
+        const candidate = await user_model.findOne({where: {email: email}});
         if (candidate) {
             throw new Error('This user_name is already taken!');
         }
         const hash_password = await bcrypt.hash(password, 4);
         // const activation_link = uuid.v4();
 
+        // const role = await Role.findOne({ where: { name: roleName } });
+
         const user = await user_model.create({
-            userName: userName,
+            email: email,
             password: hash_password,
-            role: 'USER',
+            roleId: roleId,
+            teamId: teamId
         })
-        // await mailService.sendActivationLink(email, `${process.env.API_URL}/api/user/activate/${activation_link}`);
-        const tokens = await TokenService.generateTokens({id: user.id, userName}) //payload: email, id, shopAddress, else...
-        await TokenService.saveToken(user.id, tokens.refresh_token);
-        return { ...tokens, user: {user_id: user.id, userName}}
+
+        // const tokens = await TokenService.generateTokens({id: user.id, email}) //payload: email, id, shopAddress, else...
+        // await TokenService.saveToken(user.id, tokens.refresh_token);
+        // return { ...tokens, user: {user_id: user.id, email}}
     }
 
-    async login (userName, password) {
-        const user = await user_model.findOne({where: {userName: userName}});
+    async login (email, password) {
+        const user = await user_model.findOne({where: {email: email}});
         if (!user) {
             throw ApiError.badRequest('Пользователь с таким user_name не найден');
         }
@@ -36,15 +36,14 @@ class UserService {
         if (!compare_passwords) {
             throw ApiError.badRequest('Не коректный пароль');
         }
-        const {id, userName: user_name} = user;
-        const tokens = await TokenService.generateTokens({id, userName: user_name});
+        const {id, email: user_email} = user;
+        const tokens = await TokenService.generateTokens({id, email: user_email});
         await TokenService.saveToken(id, tokens.refresh_token);
-        return {...tokens, user: {user_id: id, userName: user_name}}
+        return {...tokens, user: {user_id: id, email: user_email}}
     }
 
     async logout(refresh_token) {
-        const token = await TokenService.removeToken(refresh_token);
-        return token;
+        return await TokenService.removeToken(refresh_token);
     }
 
     async refresh(refresh_token) {
@@ -58,10 +57,10 @@ class UserService {
             throw ApiError.UnauthorizedError()
         }
         const user = await user_model.findOne({where: {id: user_data.id}})
-        const {id, userName} = user;
-        const tokens = await TokenService.generateTokens({id, userName});
+        const {id, email} = user;
+        const tokens = await TokenService.generateTokens({id, email});
         await TokenService.saveToken(user.id, tokens.refresh_token);
-        return {...tokens, user: {user_id: user.id, userName}}
+        return {...tokens, user: {user_id: user.id, email}}
     }
 }
 
