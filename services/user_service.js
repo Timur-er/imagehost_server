@@ -26,8 +26,13 @@ class UserService {
         // return { ...tokens, user: {user_id: user.id, email}}
     }
 
-    async login (email, password) {
-        const user = await user_model.findOne({where: {email: email}});
+    async login(email, password) {
+        const user = await user_model.findOne({
+            where: {email: email}, include: [
+                {model: Role, attributes: ['name']},
+                {model: Team, attributes: ['id', 'name']}
+            ]
+        });
         if (!user) {
             throw ApiError.badRequest('Пользователь с таким user_name не найден');
         }
@@ -37,7 +42,14 @@ class UserService {
             throw ApiError.badRequest('Не коректный пароль');
         }
         const {id, email: user_email} = user;
-        const tokens = await TokenService.generateTokens({id, email: user_email});
+        // можна винести в сервіс...
+        const tokens = TokenService.generateTokens({
+            id,
+            email: user_email,
+            role: user.Role.name,
+            team: user.Team.name,
+            teamId: user.Team.id,
+        });
         await TokenService.saveToken(id, tokens.refresh_token);
         return {...tokens, user: {user_id: id, email: user_email}}
     }
@@ -56,11 +68,13 @@ class UserService {
         if (!user_data || !token_from_db) {
             throw ApiError.UnauthorizedError('Invalid refresh token')
         }
-        const user = await user_model.findOne({where: {id: user_data.id},
+        const user = await user_model.findOne({
+            where: {id: user_data.id},
             include: [
-                { model: Role, attributes: ['name'] },
-                { model: Team, attributes: ['name'] }
-            ]})
+                {model: Role, attributes: ['name']},
+                {model: Team, attributes: ['id', 'name']}
+            ]
+        })
 
         if (!user) {
             throw ApiError.UnauthorizedError('User not found');
@@ -68,7 +82,14 @@ class UserService {
 
         const {id, email} = user;
 
-        const tokens = await TokenService.generateTokens({id, email, role: user.Role.name, team: user.Team.name});
+        // const tokens = await TokenService.generateTokens({id, email, role: user.Role.name, team: user.Team.name});
+        const tokens = TokenService.generateTokens({
+            id,
+            email,
+            role: user.Role.name,
+            teamId: user.Team.id,
+            team: user.Team.name
+        });
         await TokenService.saveToken(user.id, tokens.refresh_token);
         return {...tokens, user: {user_id: user.id, email}}
     }
