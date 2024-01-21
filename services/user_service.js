@@ -10,9 +10,6 @@ class UserService {
             throw new Error('This user_name is already taken!');
         }
         const hash_password = await bcrypt.hash(password, 4);
-        // const activation_link = uuid.v4();
-
-        // const role = await Role.findOne({ where: { name: roleName } });
 
         const user = await user_model.create({
             email: email,
@@ -82,7 +79,6 @@ class UserService {
 
         const {id, email} = user;
 
-        // const tokens = await TokenService.generateTokens({id, email, role: user.Role.name, team: user.Team.name});
         const tokens = TokenService.generateTokens({
             id,
             email,

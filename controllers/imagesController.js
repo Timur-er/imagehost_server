@@ -8,14 +8,6 @@ const {Op} = require("sequelize");
 // Set up Multer
 const cacheDir = path.join(__dirname, '../cache')
 
-// storage = multer.diskStorage({
-//     destination: (req, file, cb) => cb(null, uploadDir),
-//     filename: (req, file, cb) => {
-//         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-//         cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-//     }
-// });
-
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'), // set the destination
     filename: (req, file, cb) => {
@@ -32,7 +24,6 @@ const upload = multer({ storage: storage });
 class ImagesController {
     async addImage(req, res){
         try {
-            console.log('uploading image');
             upload.single('image')(req, res, async (err) => {
                 if (err) {
                     return res.status(500).json({ message: err.message });
@@ -48,7 +39,7 @@ class ImagesController {
                     userId: req.user.id
                 });
 
-                const cropData = JSON.parse(req.body.crops); // Assuming crops data is in req.body
+                const cropData = JSON.parse(req.body.crops);
                 for (const crop of cropData) {
                     await CroppingSettings.create({
                         imageId: newImage.id,
@@ -129,8 +120,6 @@ class ImagesController {
         try {
             let {teamName} = req.params
             let { limit, page, searchQuery } = req.query;
-            console.log('request query', req.query);
-            console.log('request params', req.params);
             page = page || 1;
             limit = limit || 8;
             let offset = page * limit - limit;
@@ -160,27 +149,7 @@ class ImagesController {
                 },
             });
 
-            console.log('images - ', images);
-
             return res.json(images);
-
-            // const {teamId} = req.params;
-            // console.log('team id - ', teamId);
-            //
-            // const users = await User.findAll({
-            //     where: { teamId: teamId },
-            //     include: [{
-            //         model: Image,
-            //         attributes: ['imageName', 'fileName', 'filePath'] // Adjust attributes as needed
-            //     }]
-            // });
-            //
-            // let images = [];
-            // users.forEach(user => {
-            //     images = images.concat(user.Images);
-            // });
-            //
-            // return res.json(images);
         } catch (error) {
             console.error('Error fetching images from team:', error);
             throw error;
