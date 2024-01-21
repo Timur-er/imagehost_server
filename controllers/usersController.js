@@ -4,13 +4,18 @@ const sequelize = require('../db');
 class UsersController {
     async getAllUsers(req, res) {
         try {
+            const role = req.user.role;
             const teamId = req.user.teamId;
-            const response = await User.findAll({
-                include: [Role, Team],
-                where: {
-                    teamId: teamId
-                }
-            })
+
+            let queryOptions = {
+                include: [Role, Team]
+            };
+
+            if (role !== 'admin') {
+                queryOptions.where = { teamId: teamId };
+            }
+
+            const response = await User.findAll(queryOptions)
             res.json(response)
         } catch (e) {
             console.log(e);
