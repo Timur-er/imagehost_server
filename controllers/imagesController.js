@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const {Op} = require("sequelize");
+const { v4: uuidv4 } = require('uuid'); // Import the UUID version 4 function
 
 // Set up Multer
 const cacheDir = path.join(__dirname, '../cache')
@@ -33,6 +34,7 @@ class ImagesController {
                 }
 
                 const newImage = await Image.create({
+                    id: uuidv4(),
                     imageName: req.file.originalname,
                     fileName: req.file.filename,
                     filePath: req.file.path,
@@ -153,6 +155,14 @@ class ImagesController {
         } catch (error) {
             console.error('Error fetching images from team:', error);
             throw error;
+        }
+    }
+
+    async scriptAddImage (req, res) {
+        try {
+
+        } catch (e) {
+            console.log(e);
         }
     }
 }

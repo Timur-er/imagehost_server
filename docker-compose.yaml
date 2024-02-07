@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: 2Q8hh1KsYcvi
+      POSTGRES_USER: etimur
+      POSTGRES_DB: imagehosting
+    ports:
+      - "127.0.0.1:5431:5431"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  server:
+    image: etimur/imagehost_server_amd64:latest
+    environment:
+      - DB_HOST=db
+      - DB_USER=etimur
+      - DB_PASSWORD=2Q8hh1KsYcvi
+      - DB_NAME=imagehosting
+    ports:
+      - "8880:8880"
+    depends_on:
+      - db
+    volumes:
+      - app-uploads:/server/uploads
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+  app-uploads:
+
+networks:
+  app-network:
+    driver: bridge
