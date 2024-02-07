@@ -7,6 +7,6 @@ router.post('/addImage', authMiddleware(['admin', 'team_lead', 'manager']), imag
 router.get('/getAllImages', authMiddleware(['admin', 'team_lead', 'manager']), imageController.getAllImages)
 router.get('/getCroppedImage/:imageId/:aspectRatio/:width', imageController.getCroppedImage)
 router.get('/getTeamImages/:teamName', authMiddleware(['admin', 'team_lead', 'manager']), imageController.getTeamImages)
-router.post('scriptAddImage', imageController.getTeamImages)
+router.post('/scriptAddImage', imageController.scriptAddImage)
 
 module.exports = router;

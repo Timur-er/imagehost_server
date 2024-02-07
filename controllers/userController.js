@@ -2,8 +2,8 @@ const userService = require('../services/user_service')
 
 const cookieConfig = {
     maxAge: 30 * 24 * 60 * 60 * 1000,
-    sameSite: 'none',
-    secure: true,
+    sameSite: 'lax',
+    secure: false,
     httpOnly: true,
 }
 
@@ -20,8 +20,6 @@ class UserController {
 
     async login(req, res, next){
         try {
-            console.log('login stage');
-            console.log('body: ', req.body);
             const {userName, password} = req.body;
             const user_data = await userService.login(userName, password);
             res.cookie('refresh_token', user_data.refresh_token, cookieConfig);

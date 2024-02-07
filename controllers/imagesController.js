@@ -4,19 +4,25 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const {Op} = require("sequelize");
-const { v4: uuidv4 } = require('uuid'); // Import the UUID version 4 function
+const crypto = require('crypto')
 
 // Set up Multer
 const cacheDir = path.join(__dirname, '../cache')
 
+function generateHash(imageName) {
+    const hash = crypto.createHash('sha512');
+    hash.update(imageName);
+    return hash.digest('hex');
+}
+
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'), // set the destination
+    destination: (req, file, cb) => cb(null, '/server/uploads/'), // set the destination
     filename: (req, file, cb) => {
-        // Create a unique filename
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+
+        // change to hash name
+        const hashName = generateHash(file.originalname);
         const extension = path.extname(file.originalname);
-        const filename = file.fieldname + '-' + uniqueSuffix + extension;
-        cb(null, filename);
+        cb(null, hashName + extension);
     }
 });
 
@@ -32,9 +38,9 @@ class ImagesController {
                 if (!req.file) {
                     return res.status(400).send('No image file provided.');
                 }
-
+                const imageId = path.basename(req.file.filename, path.extname(req.file.filename));
                 const newImage = await Image.create({
-                    id: uuidv4(),
+                    id: imageId,
                     imageName: req.file.originalname,
                     fileName: req.file.filename,
                     filePath: req.file.path,
@@ -160,9 +166,60 @@ class ImagesController {
 
     async scriptAddImage (req, res) {
         try {
+            // Decode the base64 image and write to a temporary file
+            const imageBuffer = Buffer.from(req.body.image, 'base64');
+            const tempImageName = `temp_${Date.now()}.jpg`; // Temporary filename
+            const tempImagePath = path.join(__dirname, 'uploads', tempImageName); // Temporary file path
+            fs.writeFileSync(tempImagePath, imageBuffer);
 
+            // Add the temp file information to req.file so Multer can process it
+            req.file = {
+                originalname: tempImageName,
+                path: tempImagePath,
+                // Add other required Multer fields if necessary
+            };
+
+            // Now let Multer process the temp file as if it was a regular file upload
+            upload.single('image')(req, {}, async (err) => {
+                if (err) {
+                    // Cleanup temp file in case of error
+                    fs.unlinkSync(tempImagePath);
+                    return res.status(500).json({ message: err.message });
+                }
+                if (!req.file) {
+                    fs.unlinkSync(tempImagePath);
+                    return res.status(400).send('No image file provided.');
+                }
+
+                const imageId = path.basename(req.file.filename, path.extname(req.file.filename));
+                const newImage = await Image.create({
+                    id: imageId,
+                    imageName: req.file.originalname,
+                    fileName: req.file.filename,
+                    filePath: req.file.path,
+                    userId: 2
+                });
+
+                const cropData = JSON.parse(req.body.crops);
+                for (const crop of cropData) {
+                    await CroppingSettings.create({
+                        imageId: newImage.id,
+                        aspectRatio: crop.format,
+                        width: crop.width,
+                        height: crop.height,
+                        left: crop.left,
+                        top: crop.top
+                    });
+                }
+
+                // Cleanup temp file after processing
+                fs.unlinkSync(tempImagePath);
+
+                res.status(200).json({ message: 'Image and crop data saved successfully' });
+            });
         } catch (e) {
             console.log(e);
+            res.status(500).json({ message: e.message });
         }
     }
 }

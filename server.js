@@ -1,7 +1,6 @@
 require('dotenv').config()
 const cookieParser = require('cookie-parser');
 const express = require('express')
-const path = require('path');
 const cors = require('cors');
 const sequelize = require('./db')
 const router = require('./routes/index')
@@ -20,7 +19,7 @@ app.use(cors(options))
 app.use(express.json())
 app.use(cookieParser());
 app.use('/api', router)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static('/server/uploads'));
 
 async function createInitialRoles() {
     const roles = ['admin', 'team_lead', 'manager'];

@@ -3,9 +3,8 @@ const {DataTypes} = require('sequelize')
 
 const Image = sequelize.define('Image', {
     id: {
-        type: DataTypes.UUID, // Changed to UUID
-        primaryKey: true,
-        defaultValue: DataTypes.UUIDV4 // Automatically generate UUIDs
+        type: DataTypes.STRING(128), // Adjust for SHA-512 hash length
+        primaryKey: true
     },
     imageName: {type: DataTypes.STRING, allowNull: false},
     userId: { type: DataTypes.INTEGER, allowNull: false },
